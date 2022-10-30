@@ -1,7 +1,10 @@
 package sg.kata.bank.service;
 
-import sg.kata.bank.exception.InvalidTransactionException;
+import sg.kata.bank.exception.InvalidOperationException;
 import sg.kata.bank.model.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 public class AccountServiceImpl implements AccountService {
 
@@ -11,25 +14,29 @@ public class AccountServiceImpl implements AccountService {
      * @param account The account in which the customer deposits the amount
      * @param client  Client who want to make a deposit
      * @param amount  Amount to deposit
-     * @return Transaction Deposit with all informations
-     * @throws InvalidTransactionException Throw an exception if the amount is negative
+     * @return Operation Deposit with all informations
+     * @throws InvalidOperationException Throw an exception if the amount is negative
+     *                                   or the account doesn't belongs to client
      */
     @Override
-    public Transaction saveMoney(Account account, Client client, int amount) throws InvalidTransactionException {
+    public Operation saveMoney(Account account, Client client, int amount) throws InvalidOperationException {
         this.verifyAccountBelongsToClient(account, client);
 
         if (amount < 0) {
-            throw new InvalidTransactionException("Incorrect amount for a deposit transaction.");
+            throw new InvalidOperationException("Incorrect amount for a deposit transaction.");
         }
+
+        account.setBalance(account.getBalance() + amount);
 
         Deposit newTransaction = Deposit.builder()
                 .client(client)
                 .account(account)
                 .amount(amount)
+                .date(LocalDateTime.now())
+                .balance(account.getBalance())
                 .build();
 
-        account.getTransactions().add(newTransaction);
-        account.setBalance(account.getBalance() + amount);
+        account.getOperations().add(newTransaction);
         return newTransaction;
     }
 
@@ -39,56 +46,78 @@ public class AccountServiceImpl implements AccountService {
      * @param account The account in which the customer retreive some savings
      * @param client  Client who want to make a withdrawal
      * @param amount  Amount to withdrawal
-     * @return Transaction Withdrawal with all informations
-     * @throws InvalidTransactionException Throw an exception if the amount is negative
-     *                                     or if the amount is heigher then the account solde
+     * @return Operation Withdrawal with all informations
+     * @throws InvalidOperationException Throw an exception if the amount is negative
+     *                                   or if the amount is heigher then the account solde
+     *                                   or the account doesn't belongs to client
      */
     @Override
-    public Transaction retrieveMoney(Account account, Client client, int amount) throws InvalidTransactionException {
+    public Operation retrieveMoney(Account account, Client client, int amount) throws InvalidOperationException {
         this.verifyAccountBelongsToClient(account, client);
 
         if (amount < 0) {
-            throw new InvalidTransactionException("Incorrect amount for a withdrawal transaction.");
+            throw new InvalidOperationException("Incorrect amount for a withdrawal transaction.");
         }
         if (amount > account.getBalance()) {
-            throw new InvalidTransactionException("Incorrect amount for a withdrawal transaction Insufficient balance.");
+            throw new InvalidOperationException("Incorrect amount for a withdrawal transaction Insufficient balance.");
         }
+
+        account.setBalance(account.getBalance() - amount);
 
         Withdrawal newTransaction = Withdrawal.builder()
                 .client(client)
                 .account(account)
                 .amount(amount)
+                .date(LocalDateTime.now())
+                .balance(account.getBalance())
                 .build();
 
-        account.getTransactions().add(newTransaction);
-        account.setBalance(account.getBalance() - amount);
+        account.getOperations().add(newTransaction);
         return newTransaction;
     }
 
     /**
      * A bank client retrieve all of his savings
      *
-     * @param account The account in which the customer retreive all savings
+     * @param account The account in which the client retreive all savings
      * @param client  Client who want to make a withdrawal
-     * @return Transaction Withdrawal with all informations
+     * @return Operation Withdrawal with all informations
+     * @throws InvalidOperationException Throw an exception if the account doesn't belongs to client
      */
     @Override
-    public Transaction retrieveAllMoney(Account account, Client client) {
+    public Operation retrieveAllMoney(Account account, Client client) throws InvalidOperationException {
         this.verifyAccountBelongsToClient(account, client);
+
         Withdrawal newTransaction = Withdrawal.builder()
                 .client(client)
                 .account(account)
                 .amount(account.getBalance())
+                .date(LocalDateTime.now())
+                .balance(0)
                 .build();
-
-        account.getTransactions().add(newTransaction);
         account.setBalance(0);
+
+        account.getOperations().add(newTransaction);
         return newTransaction;
+    }
+
+    /**
+     * A bank client check his operations
+     *
+     * @param account The account in which the client retreive all savings
+     * @param client  Client who want to make a withdrawal
+     * @return list of operations
+     * @throws InvalidOperationException Throw an exception if the account doesn't belongs to client
+     */
+    @Override
+    public List<Operation> checkMyOperations(Account account, Client client) throws InvalidOperationException {
+        this.verifyAccountBelongsToClient(account, client);
+        return account.getOperations();
     }
 
     private void verifyAccountBelongsToClient(Account account, Client client) {
         if (!account.getClient().getId().equals(client.getId())) {
-            throw new InvalidTransactionException("Wrong account.");
+            throw new InvalidOperationException("Wrong account.");
         }
     }
 }

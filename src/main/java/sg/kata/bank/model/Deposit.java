@@ -3,6 +3,6 @@ package sg.kata.bank.model;
 import lombok.experimental.SuperBuilder;
 
 @SuperBuilder
-public class Deposit extends Transaction {
+public class Deposit extends Operation {
 
 }

@@ -2,10 +2,11 @@ package sg.kata.bank.service;
 
 import org.junit.Before;
 import org.junit.Test;
-import sg.kata.bank.exception.InvalidTransactionException;
+import sg.kata.bank.exception.InvalidOperationException;
 import sg.kata.bank.model.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -25,7 +26,7 @@ public class AccountServiceTest {
         account = Account.builder()
                 .id(1L)
                 .client(client)
-                .transactions(new ArrayList<>())
+                .operations(new ArrayList<>())
                 .balance(SOLDE_ACCOUNT)
                 .build();
         accountService = new AccountServiceImpl();
@@ -33,18 +34,18 @@ public class AccountServiceTest {
 
     @Test
     public void saveMoney() {
-        Transaction transaction = accountService.saveMoney(account, client, 100);
+        Operation operation = accountService.saveMoney(account, client, 100);
         int expectedSolde = 100;
 
-        assertEquals(Deposit.class, transaction.getClass());
-        assertEquals(expectedSolde, transaction.getAmount());
-        assertEquals(account, transaction.getAccount());
-        assertEquals(client, transaction.getClient());
+        assertEquals(Deposit.class, operation.getClass());
+        assertEquals(expectedSolde, operation.getAmount());
+        assertEquals(account, operation.getAccount());
+        assertEquals(client, operation.getClient());
     }
 
     @Test
     public void saveMoney_throwException_whenAmountNegative() {
-        InvalidTransactionException exception = assertThrows(InvalidTransactionException.class,
+        InvalidOperationException exception = assertThrows(InvalidOperationException.class,
                 () -> accountService.saveMoney(account, client, -100));
 
         String expectedMessage = "Incorrect amount for a deposit transaction.";
@@ -55,7 +56,7 @@ public class AccountServiceTest {
 
     @Test
     public void saveMoney_throwException_whenWrongAccount() {
-        InvalidTransactionException exception = assertThrows(InvalidTransactionException.class,
+        InvalidOperationException exception = assertThrows(InvalidOperationException.class,
                 () -> accountService.saveMoney(account, wrongClient, 100));
 
         String expectedMessage = "Wrong account.";
@@ -66,18 +67,18 @@ public class AccountServiceTest {
 
     @Test
     public void retrieveMoney() {
-        Transaction transaction = accountService.retrieveMoney(account, client, 100);
+        Operation operation = accountService.retrieveMoney(account, client, 100);
 
         int expectedSolde = 100;
-        assertEquals(Withdrawal.class, transaction.getClass());
-        assertEquals(expectedSolde, transaction.getAmount());
-        assertEquals(account, transaction.getAccount());
-        assertEquals(client, transaction.getClient());
+        assertEquals(Withdrawal.class, operation.getClass());
+        assertEquals(expectedSolde, operation.getAmount());
+        assertEquals(account, operation.getAccount());
+        assertEquals(client, operation.getClient());
     }
 
     @Test
     public void retrieveMoney_throwException_whenAmountNegative() {
-        InvalidTransactionException exception = assertThrows(InvalidTransactionException.class,
+        InvalidOperationException exception = assertThrows(InvalidOperationException.class,
                 () -> accountService.retrieveMoney(account, client, -100));
 
         String expectedMessage = "Incorrect amount for a withdrawal transaction.";
@@ -88,7 +89,7 @@ public class AccountServiceTest {
 
     @Test
     public void retrieveMoney_throwException_whenAmountSuperiorToSolde() {
-        InvalidTransactionException exception = assertThrows(InvalidTransactionException.class,
+        InvalidOperationException exception = assertThrows(InvalidOperationException.class,
                 () -> accountService.retrieveMoney(account, client, 300));
 
         String expectedMessage = "Incorrect amount for a withdrawal transaction Insufficient balance.";
@@ -99,7 +100,7 @@ public class AccountServiceTest {
 
     @Test
     public void retrieveMoney_throwException_whenWrongAccount() {
-        InvalidTransactionException exception = assertThrows(InvalidTransactionException.class,
+        InvalidOperationException exception = assertThrows(InvalidOperationException.class,
                 () -> accountService.retrieveMoney(account, wrongClient, 100));
 
         String expectedMessage = "Wrong account.";
@@ -110,18 +111,44 @@ public class AccountServiceTest {
 
     @Test
     public void retrieveAllMoney() {
-        Transaction transaction = accountService.retrieveAllMoney(account, client);
+        Operation operation = accountService.retrieveAllMoney(account, client);
 
-        assertEquals(Withdrawal.class, transaction.getClass());
-        assertEquals(SOLDE_ACCOUNT, transaction.getAmount());
-        assertEquals(account, transaction.getAccount());
-        assertEquals(client, transaction.getClient());
+        assertEquals(Withdrawal.class, operation.getClass());
+        assertEquals(SOLDE_ACCOUNT, operation.getAmount());
+        assertEquals(account, operation.getAccount());
+        assertEquals(client, operation.getClient());
     }
 
     @Test
     public void retrieveAllMoney_throwException_whenWrongAccount() {
-        InvalidTransactionException exception = assertThrows(InvalidTransactionException.class,
+        InvalidOperationException exception = assertThrows(InvalidOperationException.class,
                 () -> accountService.retrieveAllMoney(account, wrongClient));
+
+        String expectedMessage = "Wrong account.";
+        String actualMessage = exception.getMessage();
+
+        assertEquals(expectedMessage, actualMessage);
+    }
+
+    @Test
+    public void checkMyOperations() {
+        accountService.saveMoney(account, client, 100);
+        accountService.saveMoney(account, client, 500);
+        accountService.retrieveMoney(account, client, 100);
+        accountService.retrieveAllMoney(account, client);
+
+        List<Operation> operationList = accountService.checkMyOperations(account, client);
+        operationList.forEach(transaction -> System.out.println(transaction.toString()));
+
+        int totalOperations = 4;
+        assertEquals(totalOperations, operationList.size());
+    }
+
+
+    @Test
+    public void checkMyOperations_throwException_whenWrongAccount() {
+        InvalidOperationException exception = assertThrows(InvalidOperationException.class,
+                () -> accountService.checkMyOperations(account, wrongClient));
 
         String expectedMessage = "Wrong account.";
         String actualMessage = exception.getMessage();

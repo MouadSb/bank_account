@@ -10,6 +10,6 @@ import java.util.List;
 public class Account {
     private Long id;
     private Client client;
-    private List<Transaction> transactions;
     private int balance;
+    private List<Operation> operations;
 }
