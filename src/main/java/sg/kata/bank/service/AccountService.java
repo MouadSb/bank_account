@@ -8,4 +8,8 @@ import sg.kata.bank.model.Transaction;
 public interface AccountService {
 
     Transaction saveMoney(Account account, Client client, int amount) throws InvalidTransactionException;
+
+    Transaction retrieveMoney(Account account, Client client, int amount) throws InvalidTransactionException;
+
+    Transaction retrieveAllMoney(Account account, Client client);
 }
